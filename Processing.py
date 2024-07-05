@@ -21,24 +21,24 @@ def check_data(test):
 
 #batch correction
 adata = sc.read_h5ad("combine.h5ad")
-adata.obs['batch'] = adata.obs['patients'] + "_" + adata.obs['datasets']
+adata.obs['batch'] = adata.obs['patients'] + "_" + adata.obs['datasets']#对于每一行数据，'batch' 列的值等于 'patients' 列的值和 'datasets' 列的值拼接在一起，中间用下划线 _ 分隔
 
-patient_name =list(adata.obs.groupby("batch").count()[list(adata.obs.groupby("batch").count().iloc[:,0]>5)].index)
+patient_name =list(adata.obs.groupby("batch").count()[list(adata.obs.groupby("batch").count().iloc[:,0]>5)].index)#学习一下
 adata =adata[[i in patient_name for i in adata.obs['batch']]]
 
 sc.pp.highly_variable_genes(adata, min_mean=0.0125, max_mean=3, min_disp=0.5,batch_key="cancer_types")
 adata.raw = adata
-adata = adata[:,adata.var.highly_variable]
+adata = adata[:,adata.var.highly_variable]#只要求高表达基因
 print(adata)
 sc.tl.pca(adata,n_comps=40)
 
-bbknn.bbknn(adata,batch_key='batch')
+bbknn.bbknn(adata,batch_key='batch')#除去批次效应
 
 sc.tl.umap(adata)
 sc.tl.leiden(adata)
 
-sc.tl.rank_genes_groups(adata, 'leiden', method='logreg',use_raw=False)
-result = adata.uns['rank_genes_groups']
+sc.tl.rank_genes_groups(adata, 'leiden', method='logreg',use_raw=False)#找出各组的高可变基因
+result = adata.uns['rank_genes_groups']#各组的高可变基因在adata.uns里
 groups = result['names'].dtype.names
 pd.DataFrame(
     {group + '_' + key[:1]: result[key][group]
@@ -48,7 +48,7 @@ pd.DataFrame(
 sc.pl.umap(adata, color=[ 'NCAM1','NKG7','FCGR3A',"KLRF1","LYZ",'CST3','C1QA',
                         "EPCAM","KRT18","KRT19","CD68","CD163","CD79A", "CD19", "MS4A1",'leiden'], color_map="Reds",legend_loc="on data" )
 adata = adata[(adata.obs['leiden'] !='10') &
-              (adata.obs['leiden']!='9') & (adata.obs['leiden']!='5')]
+              (adata.obs['leiden']!='9') & (adata.obs['leiden']!='5')]#B cells (CD19, MS4A1), myeloid cells (LYZ, C1QA, CD68) or epithelial cells (EPCAM, KRT18, KRT19). 
 
 # Seperation of CD56brightCD16lo and CD56dimCD16hi NK cells based on the expression of NCAM1 and FCGR3A 
 sc.pl.umap(adata, color=[ 'NCAM1','FCGR3A'], color_map="Reds",legend_loc="on data" )
